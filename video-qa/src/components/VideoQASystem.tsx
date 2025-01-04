@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect, useRef, useContext } from "react";
 import UsernameModal from "./login";
+import { url } from "inspector";
 
 interface VideoProcessResponse {
   status: string;
@@ -66,6 +67,8 @@ interface Chat {
   updated_at: number;
   videos: VideoInfo[]; // Add this
 }
+const ngrokurl = "https://1afc-108-51-25-37.ngrok-free.app";
+
 
 const SearchResultsList = React.memo(
   ({ results }: { results: SearchResult[] | undefined }) => {
@@ -135,7 +138,7 @@ const VideoQASystem: React.FC = () => {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showVideoSidebar, setShowVideoSidebar] = useState(false);
-  const [frameInterval, setFrameInterval] = useState(60); // Default to 60 seconds
+  const [frameInterval, setFrameInterval] = useState(1); // Default to 60 seconds
 
   // UI states
   const [videoUrl, setVideoUrl] = useState<string>("");
@@ -157,15 +160,6 @@ const VideoQASystem: React.FC = () => {
   const [username, setUsername] = useState<string | null>(null);
   const [showUsernameModal, setShowUsernameModal] = useState(true); 
 
-
-  useEffect(() => {
-    const storedUsername = sessionStorage.getItem("username");
-    if (storedUsername) {
-      setUsername(storedUsername);
-      setShowUsernameModal(false);
-    }
-  }, []);
-  
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -184,7 +178,7 @@ const VideoQASystem: React.FC = () => {
         console.log(username);
         const response = await fetch(
           //`http://127.0.0.1:5000/api/chats?username=${username}`
-          `https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats?username=${username}`
+          `${ngrokurl}/api/chats?username=${username}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch chats");
@@ -249,8 +243,7 @@ const VideoQASystem: React.FC = () => {
 
   const createNewChat = async () => {
     try {
-      //const response = await fetch("http://127.0.0.1:5000/api/chats", {
-      const response = await fetch("https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats", {
+      const response = await fetch(`${ngrokurl}/api/chats`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -291,8 +284,7 @@ const VideoQASystem: React.FC = () => {
   const updateChatTitle = async (chatId: string, newTitle: string) => {
     try {
       const response = await fetch(
-        //`http://127.0.0.1:5000/api/chats/${chatId}`,
-        `https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats/${chatId}`,
+        `${ngrokurl}/api/chats/${chatId}`,
         {
           method: "PATCH",
           headers: {
@@ -323,8 +315,7 @@ const VideoQASystem: React.FC = () => {
   const deleteChat = async (chatId: string) => {
     try {
       const response = await fetch(
-        `https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats/${chatId}`,
-        // `http://127.0.0.1:5000/api/chats/${chatId}`,
+        `${ngrokurl}/api/chats/${chatId}`,
         {
           method: "DELETE",
         }
@@ -365,8 +356,7 @@ const VideoQASystem: React.FC = () => {
     setError("");
 
     try {
-      const response = await fetch("https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/process-video", {
-      // const response = await fetch("http://127.0.0.1:5000/api/process-video", {
+      const response = await fetch(`${ngrokurl}/api/process-video`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -449,8 +439,7 @@ const VideoQASystem: React.FC = () => {
       setQuestion("");
 
       // Make API call
-      // const response = await fetch("http://127.0.0.1:5000/api/query", {
-      const response = await fetch("https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/query", {
+      const response = await fetch(`${ngrokurl}/api/query`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -545,28 +534,6 @@ const VideoQASystem: React.FC = () => {
               if (e.key === "Escape") setShowModal(false);
             }}
           />
-
-          {/* New Frame Interval Input */}
-          <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-2">
-              Frame Interval (seconds)
-            </label>
-            <input
-              type="number"
-              value={frameInterval}
-              onChange={(e) => {
-                const value = Number(e.target.value);
-                // Ensure value is between 1 and 300
-                setFrameInterval(Math.min(Math.max(1, value), 300));
-              }}
-              min="1"
-              max="300"
-              className="w-full p-3 bg-[#090b10] text-gray-200 rounded-lg border border-gray-700"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Choose interval between 1-300 seconds
-            </p>
-          </div>
 
           <div className="flex justify-end gap-2">
             <button
