@@ -231,9 +231,7 @@ class VideoQASystem:
             raise Exception(f"Error querying video content: {str(e)}")
 
 # Initialize the system with API keys
-OPENAI_API_KEY = "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"
-PINECONE_API_KEY = "pcsk_6V1rcr_SoVXjwiupo4WysvqJkpDNLVdtjAnjWvn6J66xPsHwQ8xgAzBBBooKzYyahsbajC"
-qa_system = VideoQASystem(OPENAI_API_KEY, PINECONE_API_KEY)
+qa_system = VideoQASystem(os.getenv('OPENAI_API_KEY'), os.getenv('PINECONE_API_KEY'))
 
 chats = {}
 
