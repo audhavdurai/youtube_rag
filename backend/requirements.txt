@@ -21,7 +21,7 @@ charset-normalizer==3.4.0
 chroma-hnswlib==0.7.6
 chromadb==0.5.23
 click==8.1.8
-clip==1.0
+git+https://github.com/openai/CLIP.git
 coloredlogs==15.0.1
 dataclasses-json==0.6.7
 decorator==5.1.1
