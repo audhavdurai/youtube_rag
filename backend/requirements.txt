@@ -148,6 +148,7 @@ Pygments==2.18.0
 pymongo==4.10.1
 pypdf==5.1.0
 PyPika==0.48.9
+gunicorn==21.2.0
 pyproject_hooks==1.2.0
 pytesseract==0.3.13
 python-dateutil==2.9.0.post0
