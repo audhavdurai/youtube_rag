@@ -10,7 +10,8 @@ from datetime import datetime
 import torch
 import os
 import uuid
-
+from yt_dlp import YoutubeDL
+import urllib.parse
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +26,72 @@ class VideoQASystem:
             max_tokens=500,
             api_key=openai_api_key
         )
+        
+        self.model = ChatOpenAI(
+            temperature=0,
+            model="gpt-4o-mini",
+            max_tokens=500,
+            api_key=openai_api_key
+        )
+
+    def is_search(self, query):
+        """Detect if the query is a YouTube search or a video content question"""
+        prompt = f"""Analyze this query: "{query}"
+        Is this a request to search for YouTube videos or a question about video content?
+        Return either "SEARCH" or "QUERY" as your answer.
+        
+        Examples:
+        - "find videos about python programming" -> "SEARCH"
+        - "search for cooking tutorials" -> "SEARCH"
+        - "look up videos about space" -> "SEARCH"
+        - "what did they say about neural networks?" -> "QUERY"
+        - "can you explain the main points?" -> "QUERY"
+        - "what happened in the video?" -> "QUERY"
+        """
+        
+        messages = [HumanMessage(content=prompt)]
+        response = self.model.invoke(messages)
+        return response.content.strip().lower().count("search") > 0
+    
+    def search(self, query): 
+        try:
+            # Get cleaned search query from GPT
+            prompt = f"""Convert this query to a simple youtube search query and include no other text outside of the
+            query as your response will be parsed by an algorithm. Query: "{query}"
+            """
+            messages = [HumanMessage(content=prompt)]
+            response = self.model.invoke(messages)
+            search_query = response.content.strip()
+
+            # Create YouTube search URL for top 10 results
+            search_url = f"ytsearch10:{urllib.parse.quote(search_query)}"
+            
+            # Configure youtube-dl
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'extract_flat': True,
+            }
+
+            videos = []
+            with YoutubeDL(ydl_opts) as ydl:
+                results = ydl.extract_info(search_url, download=False)
+                
+                if 'entries' in results:
+                    for entry in results['entries']:
+                        videos.append({
+                            'id': entry['id'],
+                            'title': entry['title'],
+                            'description': entry.get('description', ''),
+                            'thumbnail': entry.get('thumbnail', ''),
+                            'channelTitle': entry.get('uploader', ''),
+                            'url': f"https://www.youtube.com/watch?v={entry['id']}"
+                        })
+
+            return videos[:5]
+                    
+        except Exception as e:
+            raise Exception(f"Error searching videos: {str(e)}")
         
     def process_video(self, url, chat_id, frame_interval=60):
         """Process a video URL and store both frames and transcript"""
@@ -62,9 +129,10 @@ class VideoQASystem:
         if "past_messages" in data_dict and data_dict["past_messages"]:
             chat_history = "\nPrevious conversation:\n"
             for msg in data_dict["past_messages"]:
-                prefix = "Human: " if msg["type"] == "question" else "Assistant: "
-                chat_history += f"{prefix}{msg['content']}\n"
-        
+                if not isinstance(msg["content"], list) and 'isSearch' not in msg:
+                    prefix = "Human: " if msg["type"] == "question" else "Assistant: "
+                    chat_history += f"{prefix}{msg['content']}\n"
+
         # Add text context and question
         messages.append({
             "type": "text",
@@ -200,8 +268,6 @@ def create_chat():
     """Create a new chat"""
     data = request.get_json()
 
-    print(data)
-
     chat = Chat(title=data['title'], username = data['username'])
     chats[chat.id] = chat
     return jsonify({
@@ -233,7 +299,6 @@ def process_video():
     """Process a video URL for a specific chat"""
     try:
         data = request.get_json()
-        print(data)
         if not data or 'url' not in data or 'chat_id' not in data:
             return jsonify({"error": "Missing URL or chat_id in request body"}), 400
             
@@ -261,7 +326,7 @@ def process_video():
 
 @app.route('/api/query', methods=['POST'])
 def query():
-    """Query video content for a specific chat"""
+    """Query endpoint that handles both video searching and content querying"""
     try:
         data = request.get_json()
         if not data or 'question' not in data or 'chat_id' not in data:
@@ -271,25 +336,52 @@ def query():
         if not chat:
             return jsonify({"error": "Chat not found"}), 404
         
-        print(data)
-        # Use the VideoQASystem's query method with chat_id
-        result = qa_system.query(data['question'], data['chat_id'])
-        
-        # Store message in chat history
-        chat.messages.append({
-            'type': 'question',
-            'content': data['question'],
-            'timestamp': datetime.utcnow().isoformat()
-        })
-        chat.messages.append({
-            'type': 'answer',
-            'content': result['answer'],
-            'context': result['context'],
-            'timestamp': datetime.utcnow().isoformat()
-        })
-        chat.updated_at = datetime.utcnow()
-        
-        return jsonify(result)
+        # Check if this is a search query
+        is_search = qa_system.is_search(data['question'])
+
+        if is_search:
+            # Handle as YouTube search
+            videos = qa_system.search(data['question'])
+
+            chat.messages.append({
+                'type': 'question',
+                'isSearch': True, 
+                'content': data['question'],
+                'timestamp': datetime.utcnow().isoformat()
+            })
+
+            chat.messages.append({
+                'type': 'answer', 
+                'content': videos,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+
+            return jsonify({
+                "type": "search",
+                "results": videos
+            })
+        else:
+            # Handle as regular video content query
+            result = qa_system.query(data['question'], data['chat_id'])
+            
+            # Store messages in chat history as before
+            chat.messages.append({
+                'type': 'question',
+                'content': data['question'],
+                'timestamp': datetime.utcnow().isoformat()
+            })
+            chat.messages.append({
+                'type': 'answer',
+                'content': result['answer'],
+                'context': result['context'],
+                'timestamp': datetime.utcnow().isoformat()
+            })
+            chat.updated_at = datetime.utcnow()
+
+            return jsonify({
+                "type": "query",
+                "results": result
+            })
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -298,7 +390,6 @@ def query():
 def delete_chat(chat_id):
     """Delete a chat and its vectors"""
 
-    print(chat_id)
     chat = chats[chat_id]
 
     if not chat:
@@ -338,6 +429,6 @@ def update_chat(chat_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # app.run(debug=True, host='127.0.0.1', port=5000)
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(debug=True, host='127.0.0.1', port=5000)
+    # port = int(os.environ.get('PORT', 5000))
+    # app.run(host='0.0.0.0', port=port)
