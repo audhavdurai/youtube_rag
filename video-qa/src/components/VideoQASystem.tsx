@@ -183,7 +183,8 @@ const VideoQASystem: React.FC = () => {
       try {
         console.log(username);
         const response = await fetch(
-          `http://127.0.0.1:5000/api/chats?username=${username}`
+          //`http://127.0.0.1:5000/api/chats?username=${username}`
+          `https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats?username=${username}`
         );
         if (!response.ok) {
           throw new Error("Failed to fetch chats");
@@ -248,7 +249,8 @@ const VideoQASystem: React.FC = () => {
 
   const createNewChat = async () => {
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/chats", {
+      //const response = await fetch("http://127.0.0.1:5000/api/chats", {
+      const response = await fetch("https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -289,7 +291,8 @@ const VideoQASystem: React.FC = () => {
   const updateChatTitle = async (chatId: string, newTitle: string) => {
     try {
       const response = await fetch(
-        `http://127.0.0.1:5000/api/chats/${chatId}`,
+        //`http://127.0.0.1:5000/api/chats/${chatId}`,
+        `https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats/${chatId}`,
         {
           method: "PATCH",
           headers: {
@@ -320,7 +323,8 @@ const VideoQASystem: React.FC = () => {
   const deleteChat = async (chatId: string) => {
     try {
       const response = await fetch(
-        `http://127.0.0.1:5000/api/chats/${chatId}`,
+        `https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/chats/${chatId}`,
+        // `http://127.0.0.1:5000/api/chats/${chatId}`,
         {
           method: "DELETE",
         }
@@ -361,7 +365,8 @@ const VideoQASystem: React.FC = () => {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/process-video", {
+      const response = await fetch("https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/process-video", {
+      // const response = await fetch("http://127.0.0.1:5000/api/process-video", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -444,7 +449,8 @@ const VideoQASystem: React.FC = () => {
       setQuestion("");
 
       // Make API call
-      const response = await fetch("http://127.0.0.1:5000/api/query", {
+      // const response = await fetch("http://127.0.0.1:5000/api/query", {
+      const response = await fetch("https://5000-01jgss1vkadw69ta5gkacnfwa0-w.cloudspaces.litng.ai/api/query", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
