@@ -154,13 +154,18 @@ const VideoQASystem: React.FC = () => {
 
   //   const [username, setUsername] = useState<string | null>(null);
   //   const [showUsernameModal, setShowUsernameModal] = useState(true);
-  const [username, setUsername] = useState<string | null>(
-    sessionStorage.getItem("username")
-  );
-  const [showUsernameModal, setShowUsernameModal] = useState(
-    !sessionStorage.getItem("username")
-  );
+  const [username, setUsername] = useState<string | null>(null);
+  const [showUsernameModal, setShowUsernameModal] = useState(true); 
 
+
+  useEffect(() => {
+    const storedUsername = sessionStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+      setShowUsernameModal(false);
+    }
+  }, []);
+  
   useEffect(() => {
     setIsMounted(true);
   }, []);
