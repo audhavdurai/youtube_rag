@@ -289,7 +289,7 @@ const VideoQASystem: React.FC = () => {
       const response = await fetch(
         `${ngrokurl}/api/chats/${chatId}`,
         {
-          method: "PATCH",
+          method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
