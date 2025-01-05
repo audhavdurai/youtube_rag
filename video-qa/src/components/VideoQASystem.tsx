@@ -66,7 +66,7 @@ interface Chat {
   updated_at: number;
   videos: VideoInfo[]; // Add this
 }
-const ngrokurl = "https://dcbe-108-51-25-37.ngrok-free.app/";
+const ngrokurl = "https://5000-01jgsqrd7tefatat8ghx7wwhte.cloudspaces.litng.ai";
 
 const SearchResultsList = React.memo(
   ({ results }: { results: SearchResult[] | undefined }) => {
@@ -176,7 +176,12 @@ const VideoQASystem: React.FC = () => {
         console.log(username);
         const response = await fetch(
           //`http://127.0.0.1:5000/api/chats?username=${username}`
-          `${ngrokurl}/api/chats?username=${username}`
+          `${ngrokurl}/api/chats?username=${username}`, 
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }
         );
         if (!response.ok) {
           throw new Error("Failed to fetch chats");
