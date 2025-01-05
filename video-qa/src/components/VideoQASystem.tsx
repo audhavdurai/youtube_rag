@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect, useRef, useContext } from "react";
 import UsernameModal from "./login";
-import { url } from "inspector";
 
 interface VideoProcessResponse {
   status: string;
@@ -67,8 +66,7 @@ interface Chat {
   updated_at: number;
   videos: VideoInfo[]; // Add this
 }
-const ngrokurl = "https://1afc-108-51-25-37.ngrok-free.app";
-
+const ngrokurl = "https://dcbe-108-51-25-37.ngrok-free.app/";
 
 const SearchResultsList = React.memo(
   ({ results }: { results: SearchResult[] | undefined }) => {
