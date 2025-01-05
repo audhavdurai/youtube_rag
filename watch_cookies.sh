@@ -1,37 +1,66 @@
 #!/bin/bash
 
-# Directory to watch
+# Configuration
 WATCH_DIR="$HOME/Downloads"
 REMOTE_PATH="s_01jgsqrd7tefatat8ghx7wwhte@ssh.lightning.ai:./content/youtube_rag/backend/cookies.txt"
+NGROK_URL="https://5000-01jgsqrd7tefatat8ghx7wwhte.cloudspaces.litng.ai"
 
-# Create fswatch command that watches for new files
+# Function to wake up server and wait for response
+wake_server() {
+    echo "Waking up server (this may take up to 5 minutes)..."
+    
+    response=$(curl -X POST "${NGROK_URL}/api/chats" \
+         -H "Content-Type: application/json" \
+         -d "{\"title\": \"New Chat\", \"username\": \"tacotacotaco\"}" \
+         -w "%{http_code}" \
+         --max-time 300 \  # 5 minute timeout
+         --silent \
+         --output /dev/null)
+    
+    if [[ "$response" == *"200"* ]] || [[ "$response" == *"201"* ]]; then
+        echo "Server is responsive"
+        return 0
+    fi
+    
+    echo "Server failed to respond"
+    return 1
+}
+
+# Function to handle file upload
+handle_cookies_file() {
+    local cookies_file="$1"
+    
+    # First ensure server is awake
+    if ! wake_server; then
+        echo "Cannot upload cookies file - server unavailable"
+        return 1
+    fi
+    
+    # Now proceed with upload
+    echo "Uploading to remote server..."
+    scp "$cookies_file" "$REMOTE_PATH"
+    
+    if [ $? -eq 0 ]; then
+        echo "Upload successful"
+        rm "$cookies_file"
+        echo "Local file removed"
+        return 0
+    else
+        echo "Upload failed"
+        return 1
+    fi
+}
+
+# Main file watching logic
 fswatch -0 "$WATCH_DIR" | while read -d "" event
 do
-    # Get just the filename from the event
     filename=$(basename "$event")
     
-    # Check if the file is cookies.txt
     if [ "$filename" = "cookies.txt" ]; then
         echo "Found new cookies.txt file"
+        sleep 1  # Brief pause to ensure file is fully written
         
-        # Wait a brief moment to ensure file is completely written
-        sleep 1
-        
-        # Full path to the cookies file
         COOKIES_FILE="$WATCH_DIR/cookies.txt"
-        
-        # Upload the file
-        echo "Uploading to remote server..."
-        scp "$COOKIES_FILE" "$REMOTE_PATH"
-        
-        # Check if scp was successful
-        if [ $? -eq 0 ]; then
-            echo "Upload successful"
-            # Remove the local file
-            rm "$COOKIES_FILE"
-            echo "Local file removed"
-        else
-            echo "Upload failed"
-        fi
+        handle_cookies_file "$COOKIES_FILE"
     fi
 done
